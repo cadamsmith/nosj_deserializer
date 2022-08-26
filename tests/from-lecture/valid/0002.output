@@ -1,0 +1,7 @@
+begin-map
+a -- integer -- 1
+b -- map -- 
+begin-map
+a -- integer -- 3
+end-map
+end-map

@@ -1,0 +1,4 @@
+begin-map
+x -- string -- abcd
+y -- integer -- 123
+end-map
