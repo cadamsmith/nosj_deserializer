@@ -39,7 +39,9 @@ func main() {
 // turns a nosj string into a map
 // - if at any point it is determined to be malformed, it will terminate with an error
 func buildMap(content string) *OrderedMap[string, interface{}] {
+	// whitespace around a root map doesn't matter
 	content = strings.TrimSpace(content)
+	// make sure the file has content and has a root map <>
 	if len(content) < 1 {
 		raiseError("malformed file")
 	}
@@ -47,26 +49,38 @@ func buildMap(content string) *OrderedMap[string, interface{}] {
 		raiseError("malformed file")
 	}
 
+	// this map is what will be returned
 	outerMap := NewOrderedMap[string, interface{}]()
 
+	// split the inside of the map into parts, where each part is a key-value pair
 	parts := strings.Split(content[1:len(content)-1], ",")
 	for _, part := range parts {
 		if part == "" {
 			continue
 		}
 
-		key, value := splitKeyAndValue(part)
-		if key == "" || value == "" {
+		// both the key and the value need some content inside them
+		if !isValidMapEntry(part) {
 			raiseError("malformed file")
 		}
+		key, value := splitMapEntry(part)
 
+		// make sure key is valid and has not already been used
 		if !isValidKey(key) {
 			raiseError("malformed file")
 		} else if outerMap.Has(key) {
 			raiseError("malformed file")
 		}
 
+		// based on the contents, build a value which can be one of 4 types
+		// 1. map
+		// 2. integer
+		// 3. simple string
+		// 4. complex string
 		var newValue interface{} = nil
+		
+		// map validation takes place inside buildMap function
+		// the rest will validate before building the value
 		if value[0] == '<' {
 			newValue = buildMap(value)
 		} else if strings.Contains(value, "%") {
@@ -88,9 +102,11 @@ func buildMap(content string) *OrderedMap[string, interface{}] {
 
 			newValue = getInteger(value)
 		} else {
+			// it conforms to nothing else, so it must be a malformed file
 			raiseError("malformed file")
 		}
 
+		// if we get here, we have a valid key-value pair, so add it to the map
 		outerMap.Set(key, newValue)
 	}
 
@@ -101,6 +117,7 @@ func buildMap(content string) *OrderedMap[string, interface{}] {
 func printMap(omap *OrderedMap[string, interface{}]) {
 	fmt.Println("begin-map")
 
+	// iterate over the map keys
 	iterator := omap.Iterator()
 
 	for {
@@ -110,12 +127,16 @@ func printMap(omap *OrderedMap[string, interface{}]) {
 		}
 
 		key := *k
+		// basically have to use reflection to get the type of the value
+		// because we saved it as a map of interface{}
 		reflectType := reflect.TypeOf(value).Kind()
 
+		// if the value is a map, we need to recurse into it
 		if reflectType == reflect.Ptr {
 			fmt.Println(key, "-- map -- ")
 			printMap(value.(*OrderedMap[string, interface{}]))
 		} else {
+			// otherwise, we can just print the value
 			valueType := ""
 			switch reflectType {
 			case reflect.String:
@@ -131,8 +152,25 @@ func printMap(omap *OrderedMap[string, interface{}]) {
 	fmt.Println("end-map")
 }
 
-// takes a key-value string and splits it into a key and value
-func splitKeyAndValue(text string) (string, string) {
+// for my purposes, i am defining a valid map entry
+// as a string of the form a:b where the lengths of
+// substrings a and b are at least 1
+func isValidMapEntry(text string) bool {
+	if len(text) < 3 {
+		return false
+	}
+
+	// can't have an entry of the form :c or c:
+	colonIndex := strings.Index(text, ":")
+	if colonIndex < 1 || colonIndex > len(text) - 2 {
+		return false
+	}
+
+	return true
+}
+
+// takes a map entry and splits it into a key and value
+func splitMapEntry(text string) (string, string) {
 	splitIndex := strings.Index(text, ":")
 	return text[0:splitIndex], text[splitIndex+1:]
 }
