@@ -17,7 +17,7 @@ func main() {
 	log.SetPrefix("ERROR -- ")
 	log.SetFlags(0)
 
-	// validates that a nosj filename was actually provided
+	// validates that a nosj filepath was actually provided as an argument
 	argLength := len(os.Args[1:])
 	if argLength < 1 {
 		raiseError("no input filename provided")
@@ -137,26 +137,6 @@ func splitKeyAndValue(text string) (string, string) {
 	return text[0:splitIndex], text[splitIndex+1:]
 }
 
-// tests whether a string contains only numerical digits
-func isNumeric(text string) bool {
-	return regexp.MustCompile(`^[0-9]*$`).MatchString(text)
-}
-
-// tests whether a string contains only numerical digits or lower/upper case letters
-func isAlphaNumeric(text string) bool {
-	return regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(text)
-}
-
-// tests whether a string contains only numerical digits or lower/upper case letters or whitespace
-func isAlphaNumericOrWhiteSpace(text string) bool {
-	return regexp.MustCompile(`^[a-zA-Z0-9\s]*$`).MatchString(text)
-}
-
-// tests whether a string contains only numerical digits or lower/upper case letters or percent signs
-func isAlphaNumericOrPercents(text string) bool {
-	return regexp.MustCompile(`^[a-zA-Z0-9%]*$`).MatchString(text)
-}
-
 // determines whether a string k is a valid nosj key, that is:
 // 1. k is non-empty
 // 2. k is alphanumeric
@@ -170,50 +150,7 @@ func isValidKey(key string) bool {
 	return true
 }
 
-// tests whether a string s is a valid nosj complex string, that is:
-func isValidComplexString(text string) bool {
-	if !strings.Contains(text, "%") {
-		return false
-	} else if !isAlphaNumericOrPercents(text) {
-		return false
-	}
-
-	_, error := url.QueryUnescape(text)
-	if error != nil {
-		raiseError("malformed file")
-	}
-
-	return true
-}
-
-// converts a nosj complex string to a string
-func getComplexString(text string) string {
-	decoded, error := url.QueryUnescape(text)
-	if error != nil {
-		raiseError("malformed file")
-	}
-
-	return decoded
-}
-
-// tests whether a string s is a valid nosj simple string, that is:
-// 1. s is non-empty
-// 2. s ends with 's'
-// 3. s is alphanumeric or whitespace
-func isValidSimpleString(text string) bool {
-	if len(text) < 1 || text[len(text)-1] != 's' {
-		return false
-	} else if !isAlphaNumericOrWhiteSpace(text) {
-		return false
-	}
-
-	return true
-}
-
-// converts a nosj simple string to a string
-func getSimpleString(text string) string {
-	return text[:len(text)-1]
-}
+// region NOSJ PRIMITIVE SPEC VALIDATION
 
 // tests whether a string i is a valid nosj integer, that is:
 //  1. i is at least two characters long
@@ -244,6 +181,40 @@ func isValidInteger(text string) bool {
 	return true
 }
 
+// tests whether a string s is a valid nosj simple string, that is:
+// 1. s is non-empty
+// 2. s ends with 's'
+// 3. s is alphanumeric or whitespace
+func isValidSimpleString(text string) bool {
+	if len(text) < 1 || text[len(text)-1] != 's' {
+		return false
+	} else if !isAlphaNumericOrWhiteSpace(text) {
+		return false
+	}
+
+	return true
+}
+
+// tests whether a string s is a valid nosj complex string, that is:
+func isValidComplexString(text string) bool {
+	if !strings.Contains(text, "%") {
+		return false
+	} else if !isAlphaNumericOrPercents(text) {
+		return false
+	}
+
+	_, error := url.QueryUnescape(text)
+	if error != nil {
+		raiseError("malformed file")
+	}
+
+	return true
+}
+
+// endregion
+
+// region NOSJ PRIMITIVE CONVERSIONS
+
 // converts a nosj integer string to an integer
 func getInteger(text string) int {
 	isNegative := text[1] == '-'
@@ -266,6 +237,25 @@ func getInteger(text string) int {
 	}
 }
 
+// converts a nosj simple string to a string
+func getSimpleString(text string) string {
+	return text[:len(text)-1]
+}
+
+// converts a nosj complex string to a string
+func getComplexString(text string) string {
+	decoded, error := url.QueryUnescape(text)
+	if error != nil {
+		raiseError("malformed file")
+	}
+
+	return decoded
+}
+
+// endregion
+
+// region ERROR HANDLING
+
 // handles any errors that would cause the program to terminate prematurely
 // 1. filename not provided
 // 2. file not found
@@ -276,3 +266,37 @@ func raiseError(errorMessage string) {
 	log.Println(error.Error())
 	os.Exit(66)
 }
+
+// handles errors concerned with malformed files, that is
+// files that specified and exist, but are not formatted
+// according to the nosj specification
+func raiseMalformedFileError() {
+	raiseError("malformed file")
+}
+
+
+// endregion
+
+// region STRING HELPERS
+
+// tests whether a string contains only numerical digits
+func isNumeric(text string) bool {
+	return regexp.MustCompile(`^[0-9]*$`).MatchString(text)
+}
+
+// tests whether a string contains only numerical digits or lower/upper case letters
+func isAlphaNumeric(text string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString(text)
+}
+
+// tests whether a string contains only numerical digits or lower/upper case letters or whitespace
+func isAlphaNumericOrWhiteSpace(text string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9\s]*$`).MatchString(text)
+}
+
+// tests whether a string contains only numerical digits or lower/upper case letters or percent signs
+func isAlphaNumericOrPercents(text string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9%]*$`).MatchString(text)
+}
+
+// endregion
