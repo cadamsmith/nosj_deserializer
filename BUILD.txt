@@ -1,0 +1,18 @@
+
+Prerequisites
+-------------
+1. install golang 1.18 / 1.19
+2. setup PATH to be able to use go command in terminal
+
+Building
+--------
+1. navigate into ./src folder
+2. execute 'go build' command
+3. observe that executable ./nosj_deserializer is created
+
+Executing
+---------
+1. prepare some arbitary input file in the ./src directory with
+   either well-formed or malformed nosj text
+2. execute binary with command './nosj_deserializer FILENAME', where 
+   FILENAME is the name of the input file created previously
