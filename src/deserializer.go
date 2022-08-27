@@ -54,9 +54,15 @@ func buildMap(content string) *OrderedMap[string, interface{}] {
 
 	// split the inside of the map into parts, where each part is a key-value pair
 	parts := strings.Split(content[1:len(content)-1], ",")
+	hasEmptyPart := false
 	for _, part := range parts {
-		if part == "" {
-			continue
+		if part == ""  {
+			if !hasEmptyPart {
+				hasEmptyPart = true
+				continue
+			} else {
+				raiseError("malformed file")
+			}
 		}
 
 		// both the key and the value need some content inside them
